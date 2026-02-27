@@ -54,13 +54,13 @@ export default function Sidebar() {
       <AnimatePresence>
         {(mobileOpen || !collapsed) && (
           <motion.aside
-            initial={mobileOpen ? { x: -300 } : false}
+            initial={mobileOpen ? { x: -300 } : undefined}
             animate={{ 
               x: 0, 
               width: mobileOpen ? '280px' : (collapsed ? '80px' : '280px'),
               position: mobileOpen ? 'fixed' : 'relative'
             }}
-            exit={mobileOpen ? { x: -300 } : false}
+            exit={mobileOpen ? { x: -300 } : undefined}
             className={cn(
               "h-[100dvh] bg-navy-950 border-r border-white/10 flex flex-col z-50 transition-all duration-300 ease-in-out shadow-2xl",
               mobileOpen && "fixed top-0 left-0"
