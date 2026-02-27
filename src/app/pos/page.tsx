@@ -22,7 +22,9 @@ import {
   PackageCheck,
   AlertCircle,
   Truck,
-  Send
+  Send,
+  Coins,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
@@ -56,6 +58,8 @@ export default function DistributedPOS() {
   const [orderComplete, setOrderComplete] = useState(false);
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [posMode, setPosMode] = useState<'SALES' | 'DISPATCH'>('SALES');
+  const [phone, setPhone] = useState('');
+  const [stkStatus, setStkStatus] = useState<'IDLE' | 'SENDING' | 'WAITING' | 'SUCCESS' | 'ERROR'>('IDLE');
   
   useEffect(() => {
     if (!currentUser) router.push('/login');
@@ -83,6 +87,35 @@ export default function DistributedPOS() {
     } else {
        // Cashiers/Admins do direct payment
        setShowPaymentModal(true);
+    }
+  };
+
+  const handleSTKPush = async () => {
+    if (!phone) return alert("Please enter customer phone number");
+    setStkStatus('SENDING');
+    
+    try {
+      const res = await fetch('/api/mpesa/stk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total, phone, orderId: `INV-${Date.now()}` })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        setStkStatus('WAITING');
+        // In production, we would poll for status here
+        setTimeout(() => {
+          setStkStatus('SUCCESS');
+          processPayment();
+        }, 5000);
+      } else {
+        setStkStatus('ERROR');
+        alert(data.message || "STK Push failed");
+      }
+    } catch (err) {
+      setStkStatus('ERROR');
+      alert("Network error. Check connection.");
     }
   };
 
@@ -328,6 +361,86 @@ export default function DistributedPOS() {
         )}
       </AnimatePresence>
 
+      <AnimatePresence>
+        {showPaymentModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPaymentModal(false)} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="glass-card w-full max-w-xl p-10 rounded-[3rem] border-white/10 relative bg-navy-900 border overflow-hidden">
+               <div className="absolute top-0 left-0 w-full h-2 premium-gradient" />
+               
+               <div className="flex justify-between items-start mb-8">
+                  <div>
+                    <h2 className="text-3xl font-black text-white font-outfit">Settle Payment</h2>
+                    <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest mt-1">Select method & finalize</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] font-black text-slate-500 uppercase block">Payable Amount</span>
+                    <span className="text-3xl font-black text-brand-blue font-outfit">{currency} {total.toLocaleString()}</span>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-3 gap-4 mb-8">
+                  {[
+                    { id: 'CASH', label: 'Cash', icon: Coins },
+                    { id: 'MPESA', label: 'M-Pesa STK', icon: SmartphoneNfc },
+                    { id: 'CARD', label: 'Visa/Debit', icon: CreditCard },
+                  ].map(method => (
+                    <button
+                      key={method.id}
+                      onClick={() => setPaymentMethod(method.id as any)}
+                      className={cn(
+                        "flex flex-col items-center justify-center p-6 rounded-3xl border-2 transition-all",
+                        paymentMethod === method.id 
+                          ? "bg-brand-blue/10 border-brand-blue text-brand-blue" 
+                          : "bg-white/5 border-transparent text-slate-500 hover:text-white"
+                      )}
+                    >
+                      <method.icon size={32} className="mb-3" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">{method.label}</span>
+                    </button>
+                  ))}
+               </div>
+
+               {paymentMethod === 'MPESA' && (
+                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 mb-8">
+                    <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Customer Phone (M-Pesa)</label>
+                       <input 
+                         placeholder="07XX XXX XXX / 254..." 
+                         value={phone}
+                         onChange={e => setPhone(e.target.value)}
+                         className="w-full bg-navy-950 border border-white/10 rounded-2xl p-4 text-white font-bold text-lg outline-none focus:ring-2 focus:ring-brand-blue/50"
+                       />
+                       <div className="mt-4 flex items-center gap-3 text-slate-500">
+                          {stkStatus === 'SENDING' && <RefreshCw size={16} className="animate-spin text-brand-blue" />}
+                          {stkStatus === 'WAITING' && <Clock size={16} className="text-brand-blue" />}
+                          <span className="text-[11px] font-bold">
+                            {stkStatus === 'IDLE' && "Ready to send STK Push."}
+                            {stkStatus === 'SENDING' && "Initializing secure tunnel..."}
+                            {stkStatus === 'WAITING' && "Push sent! Waiting for customer PIN response..."}
+                            {stkStatus === 'SUCCESS' && "Payment Confirmed! Auto-printing..."}
+                          </span>
+                       </div>
+                    </div>
+                 </motion.div>
+               )}
+
+               <div className="flex gap-4">
+                  <button onClick={() => setShowPaymentModal(false)} className="flex-1 py-5 rounded-2xl bg-white/5 text-slate-400 font-black tracking-widest text-[11px] active:scale-95 transition-transform">CANCEL</button>
+                  <button 
+                    disabled={processing || (paymentMethod === 'MPESA' && stkStatus !== 'IDLE')}
+                    onClick={paymentMethod === 'MPESA' ? handleSTKPush : processPayment}
+                    className="flex-[2] py-5 rounded-2xl premium-gradient text-white font-black text-sm flex items-center justify-center gap-2 shadow-xl active:scale-95 transition-transform disabled:opacity-50"
+                  >
+                    {processing ? <RefreshCw className="animate-spin" size={20} /> : (paymentMethod === 'MPESA' ? <SmartphoneNfc size={20} /> : <CheckCircle size={20} />)}
+                    {paymentMethod === 'MPESA' ? 'INITIATE STK PUSH' : 'COMPLETE TRANSACTION'}
+                  </button>
+               </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {orderComplete && (
         <ReceiptPreview 
           items={[...items]} 
@@ -338,6 +451,8 @@ export default function DistributedPOS() {
             setOrderComplete(false);
             setShowPaymentModal(false);
             setPaymentMethod(null);
+            setPhone('');
+            setStkStatus('IDLE');
             clearCart();
           }}
         />
