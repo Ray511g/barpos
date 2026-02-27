@@ -1,7 +1,7 @@
 # BarPOS: Distributed Retail Intelligence
 > [!IMPORTANT]
 > Specialized for Kenya Liquor Stores & Modern Bars.
-> Featuring: Waiter Dispatching, PIN-Access, and M-Pesa Recon.
+> Deployment Heartbeat: 2026-02-27T11:36:00Z
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
