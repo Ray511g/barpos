@@ -34,20 +34,12 @@ import { useAuthStore } from '@/store/authStore';
 import ReceiptPreview from '@/components/ReceiptPreview';
 import { useRouter } from 'next/navigation';
 
-const LIQUOR_PRODUCTS = [
-  { id: 'L1', name: 'Johnnie Walker Black 750ml', price: 4200, category: 'Whiskey', stock: 24, volume: '750ml' },
-  { id: 'L2', name: 'Gilbeys Gin 750ml', price: 1450, category: 'Gin', stock: 112, volume: '750ml' },
-  { id: 'L3', name: 'Tusker Lager 500ml', price: 230, category: 'Beer', stock: 450, volume: '500ml', type: 'Returnable' },
-  { id: 'L4', name: 'White Cap 500ml', price: 240, category: 'Beer', stock: 320, volume: '500ml', type: 'Returnable' },
-  { id: 'L5', name: 'Hennessy VS 700ml', price: 6800, category: 'Cognac', stock: 12, volume: '700ml' },
-  { id: 'M1', name: 'Coca Cola 1.25L', price: 140, category: 'Mixers', stock: 80, volume: '1.25L' },
-];
-
+// Products are now pulled from useBusinessStore
 const CATEGORIES = ['All', 'Beer', 'Whiskey', 'Gin', 'Mixers'];
 
 export default function DistributedPOS() {
   const { items, addItem, removeItem, updateQuantity, subtotal, taxTotal, total, clearCart } = useCartStore();
-  const { currency, createOrder, activeOrders, dispatchOrder, completeOrder, voidOrder } = useBusinessStore();
+  const { currency, createOrder, activeOrders, dispatchOrder, completeOrder, voidOrder, products } = useBusinessStore();
   const { currentUser } = useAuthStore();
   const router = useRouter();
   
@@ -60,6 +52,7 @@ export default function DistributedPOS() {
   const [showMobileCart, setShowMobileCart] = useState(false);
   const [posMode, setPosMode] = useState<'SALES' | 'DISPATCH'>('SALES');
   const [phone, setPhone] = useState('');
+  const [amountReceived, setAmountReceived] = useState('');
   const [stkStatus, setStkStatus] = useState<'IDLE' | 'SENDING' | 'WAITING' | 'SUCCESS' | 'ERROR'>('IDLE');
   
   useEffect(() => {
@@ -128,7 +121,7 @@ export default function DistributedPOS() {
     }, 1200);
   };
 
-  const filteredProducts = LIQUOR_PRODUCTS.filter(p => {
+  const filteredProducts = products.filter(p => {
     const matchesCategory = activeCategory === 'All' || p.category === activeCategory;
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -402,6 +395,31 @@ export default function DistributedPOS() {
                   ))}
                </div>
 
+               {paymentMethod === 'CASH' && (
+                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 mb-8">
+                    <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
+                       <div className="grid grid-cols-2 gap-6">
+                          <div>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Amount Received</label>
+                            <input 
+                              type="number"
+                              placeholder="0.00"
+                              value={amountReceived}
+                              onChange={e => setAmountReceived(e.target.value)}
+                              className="w-full bg-navy-950 border border-white/10 rounded-2xl p-4 text-white font-bold text-lg outline-none focus:ring-2 focus:ring-brand-blue/50"
+                            />
+                          </div>
+                          <div className="flex flex-col justify-end">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Change Due</label>
+                            <div className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-emerald-400 font-black text-xl">
+                               {currency} {Number(amountReceived) > total ? (Number(amountReceived) - total).toLocaleString() : '0.00'}
+                            </div>
+                          </div>
+                       </div>
+                    </div>
+                 </motion.div>
+               )}
+
                {paymentMethod === 'MPESA' && (
                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 mb-8">
                     <div className="bg-white/5 p-6 rounded-3xl border border-white/5">
@@ -453,6 +471,7 @@ export default function DistributedPOS() {
             setShowPaymentModal(false);
             setPaymentMethod(null);
             setPhone('');
+            setAmountReceived('');
             setStkStatus('IDLE');
             clearCart();
           }}

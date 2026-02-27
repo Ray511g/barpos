@@ -32,6 +32,7 @@ const menuItems = [
   { icon: Package, label: 'Inventory', path: '/inventory', roles: ['ADMIN', 'CASHIER'] },
   { icon: RefreshCw, label: 'Empties/Crates', path: '/empties', roles: ['ADMIN', 'CASHIER'] },
   { icon: SmartphoneNfc, label: 'M-Pesa Recon', path: '/mpesa', roles: ['ADMIN', 'CASHIER'] },
+  { icon: BarChart3, label: 'Reports', path: '/reports', roles: ['ADMIN', 'CASHIER'] },
   { icon: Users, label: 'Team', path: '/staff', roles: ['ADMIN'] },
   { icon: AppWindow, label: 'Business Engine', path: '/admin', roles: ['ADMIN'] },
 ];
@@ -120,7 +121,10 @@ export default function Sidebar() {
             </nav>
 
             <div className="p-4 border-t border-white/5">
-              <button className="flex items-center gap-4 px-4 py-3 w-full text-slate-400 hover:text-red-400 transition-colors">
+              <button 
+                onClick={() => { useAuthStore.getState().logout(); window.location.href = '/login'; }}
+                className="flex items-center gap-4 px-4 py-3 w-full text-slate-400 hover:text-red-400 transition-colors"
+              >
                 <LogOut size={22} />
                 {(!collapsed || mobileOpen) && <span className="font-semibold text-sm">Lock Register</span>}
               </button>
