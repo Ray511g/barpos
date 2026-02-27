@@ -24,7 +24,8 @@ import {
   Truck,
   Send,
   Coins,
-  RefreshCw
+  RefreshCw,
+  SmartphoneNfc
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCartStore } from '@/store/cartStore';
