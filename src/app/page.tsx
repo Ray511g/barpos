@@ -19,7 +19,8 @@ import {
   Settings,
   Clock,
   LogOut,
-  Target
+  Target,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBusinessStore } from '@/store/businessStore';
