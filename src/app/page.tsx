@@ -9,7 +9,6 @@ import {
   Users, 
   AlertTriangle, 
   ArrowUpRight, 
-  ArrowDownRight,
   ShieldCheck,
   CheckCircle2,
   SmartphoneNfc,
@@ -17,147 +16,135 @@ import {
   Wine,
   BarChart3,
   Search,
-  Settings
+  Settings,
+  Clock,
+  LogOut,
+  Target
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBusinessStore } from '@/store/businessStore';
+import { useAuthStore } from '@/store/authStore';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-export default function LiquorDashboard() {
-  const { businessName, currency } = useBusinessStore();
+export default function SmartDashboard() {
+  const { businessName, currency, completedOrders, getSalesByWaiter } = useBusinessStore();
+  const { currentUser, logout } = useAuthStore();
+  const router = useRouter();
 
-  const kpis = [
-    { label: 'Counter Sales', value: '142,500', trend: '+12.5%', trendUp: true, icon: ShoppingCart },
-    { label: 'M-Pesa Match', value: '98.2%', trend: 'Highly Secure', trendUp: true, icon: SmartphoneNfc },
-    { label: 'Asset Value', value: '54,200', trend: 'Returnable Empties', trendUp: true, icon: RefreshCw },
-    { label: 'Staff Shift', value: 'Active', trend: 'Counter #1', trendUp: true, icon: Users },
-  ];
+  React.useEffect(() => {
+    if (!currentUser) router.push('/login');
+  }, [currentUser]);
+
+  if (!currentUser) return null;
+
+  const totalSales = completedOrders.reduce((a, b) => a + b.total, 0);
+  const waiterSales = getSalesByWaiter();
 
   return (
     <div className="space-y-8 animate-in pb-12">
-      {/* Premium Header */}
+      {/* Dynamic Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
         <div>
           <div className="flex items-center gap-2 text-brand-blue mb-1">
             <ShieldCheck size={18} />
-            <span className="text-[10px] font-black uppercase tracking-[4px]">Verified Security Layer</span>
+            <span className="text-[10px] font-black uppercase tracking-[4px]">System Active • {currentUser.role} Level</span>
           </div>
           <h1 className="text-5xl font-black text-white font-outfit tracking-tighter">
             {businessName.toUpperCase()} <span className="text-brand-blue">HQ</span>
           </h1>
-          <p className="text-slate-400 mt-2 font-medium">Monitoring revenue, stock integrity, and M-Pesa audits in real-time.</p>
+          <p className="text-slate-400 mt-2 font-medium">Welcome back, <span className="text-white font-bold">{currentUser.name}</span>. Shop is online.</p>
         </div>
         
         <div className="flex gap-4">
-           <Link href="/pos" className="px-8 py-4 bg-white text-navy-950 rounded-2xl font-black text-sm shadow-xl shadow-white/5 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
-             <ShoppingCart size={18} />
-             OPEN COUNTER
+           <button onClick={() => { logout(); router.push('/login'); }} className="px-6 py-4 bg-white/5 border border-white/10 text-white rounded-2xl font-bold text-xs flex items-center gap-3 hover:bg-red-500/10 hover:text-red-500 transition-all">
+             <LogOut size={16} /> SIGN OUT
+           </button>
+           <Link href="/pos" className="px-8 py-4 premium-gradient text-white rounded-2xl font-black text-sm shadow-xl shadow-brand-blue/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-3">
+             <ShoppingCart size={18} /> OPEN TERMINAL
            </Link>
         </div>
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpis.map((kpi, i) => (
-          <motion.div
-            key={kpi.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="glass-card p-6 rounded-[2rem] border-white/5 hover:border-brand-blue/20 transition-all relative group"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="p-3 rounded-2xl bg-white/5 text-brand-blue group-hover:bg-brand-blue group-hover:text-white transition-all">
-                <kpi.icon size={20} />
-              </div>
-              <div className={cn(
-                "px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest",
-                kpi.trendUp ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"
-              )}>
-                {kpi.trend}
-              </div>
-            </div>
-            <div className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1">{kpi.label}</div>
-            <div className="text-3xl font-black text-white font-outfit">
-              {kpi.label.includes('Sales') || kpi.label.includes('Value') ? `${currency} ` : ''}{kpi.value}
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Sales Chart Section */}
-        <div className="lg:col-span-2 glass-card p-10 rounded-[3rem] border-white/5 flex flex-col h-[450px]">
-          <div className="flex justify-between items-center mb-10">
-            <h3 className="text-2xl font-black text-white font-outfit flex items-center gap-3">
-              <BarChart3 className="text-brand-blue" />
-              Volume Velocity
-            </h3>
-            <div className="flex bg-white/5 p-1 rounded-xl">
-               <button className="px-4 py-2 text-xs font-black text-white bg-white/10 rounded-lg">DAILY</button>
-               <button className="px-4 py-2 text-xs font-black text-slate-500 hover:text-white">WEEKLY</button>
-            </div>
-          </div>
-          <div className="flex-1 flex items-end gap-3 lg:gap-6 px-2">
-            {[45, 60, 35, 90, 55, 100, 75].map((h, i) => (
-              <div key={i} className="flex-1 relative group">
-                <motion.div
-                  initial={{ height: 0 }}
-                  animate={{ height: `${h}%` }}
-                  transition={{ delay: i * 0.1, type: 'spring' }}
-                  className="w-full bg-gradient-to-t from-brand-blue/10 to-brand-blue rounded-t-xl lg:rounded-t-2xl relative"
-                >
-                  <div className="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-t-xl lg:rounded-t-2xl" />
-                </motion.div>
-                <span className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[9px] font-black text-slate-600 uppercase">
-                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i]}
-                </span>
-              </div>
+      {/* Admin Intelligence Layer */}
+      {currentUser.role === 'ADMIN' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { label: 'Total Revenue', value: `${currency} ${totalSales.toLocaleString()}`, icon: TrendingUp, color: 'text-brand-blue' },
+              { label: 'Total Orders', value: completedOrders.length, icon: ShoppingCart, color: 'text-emerald-400' },
+              { label: 'Top Waiter', value: Object.keys(waiterSales).sort((a,b) => waiterSales[b] - waiterSales[a])[0] || 'N/A', icon: Target, color: 'text-purple-400' },
+              { label: 'Stock Alerts', value: '4 Low', icon: AlertTriangle, color: 'text-orange-500' },
+            ].map((kpi, i) => (
+              <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="glass-card p-6 rounded-[2rem] border-white/5">
+                <div className="p-3 rounded-2xl bg-white/5 w-fit mb-4"><kpi.icon size={20} className={kpi.color} /></div>
+                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{kpi.label}</div>
+                <div className="text-2xl font-black text-white font-outfit mt-1">{kpi.value}</div>
+              </motion.div>
             ))}
           </div>
-        </div>
 
-        {/* Side Panels */}
-        <div className="space-y-8">
-           {/* Top Sellers */}
-           <div className="glass-card p-8 rounded-[3rem] border-white/5">
-              <h3 className="text-xl font-black text-white font-outfit mb-6">High Movers</h3>
-              <div className="space-y-4">
-                 {[
-                   { name: 'Tusker Lager', category: 'Beer', count: 145, color: '#f59e0b' },
-                   { name: 'Johnnie Walker Red', category: 'Whiskey', count: 42, color: '#3b82f6' },
-                   { name: 'White Cap', category: 'Beer', count: 88, color: '#10b981' },
-                 ].map((item, i) => (
-                   <div key={i} className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl hover:bg-white/10 transition-colors">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white" style={{ backgroundColor: `${item.color}20`, color: item.color }}>
-                        <Wine size={18} />
-                      </div>
-                      <div className="flex-1">
-                         <div className="text-sm font-bold text-white">{item.name}</div>
-                         <div className="text-[10px] text-slate-500 font-black uppercase">{item.category} • {item.count} SOLD</div>
-                      </div>
-                      <ArrowUpRight size={18} className="text-emerald-400 opacity-50" />
-                   </div>
-                 ))}
-              </div>
-           </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+             <div className="glass-card p-10 rounded-[3rem] border-white/5">
+                <h3 className="text-xl font-black text-white font-outfit mb-8 uppercase">Waiter Sales Performance</h3>
+                <div className="space-y-6">
+                   {Object.entries(waiterSales).map(([name, amount]) => (
+                     <div key={name} className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center font-bold text-brand-blue">{name.charAt(0)}</div>
+                        <div className="flex-1">
+                           <div className="flex justify-between text-sm font-bold text-white mb-1">
+                              <span>{name}</span>
+                              <span>{currency} {amount.toLocaleString()}</span>
+                           </div>
+                           <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                              <div className="h-full bg-brand-blue rounded-full" style={{ width: `${(amount/totalSales)*100}%` }} />
+                           </div>
+                        </div>
+                     </div>
+                   ))}
+                </div>
+             </div>
 
-           {/* Security Alert */}
-           <div className="glass-card p-8 rounded-[3rem] border-orange-500/20 bg-orange-500/5 relative overflow-hidden group">
-              <div className="relative z-10">
-                 <div className="flex items-center gap-3 text-orange-400 mb-4 font-black text-xs uppercase tracking-widest">
-                   <AlertTriangle size={18} />
-                   Stock Leakage Detected
+             <div className="glass-card p-10 rounded-[3rem] border-white/5 bg-navy-900 border-2 border-brand-blue/20 flex flex-col items-center justify-center text-center">
+                <div className="w-20 h-20 rounded-3xl bg-brand-blue/10 flex items-center justify-center text-brand-blue mb-6">
+                   <BarChart3 size={32} />
+                </div>
+                <h3 className="text-xl font-black text-white font-outfit uppercase">Profit Insight</h3>
+                <p className="text-slate-500 text-sm mt-2 max-w-[280px]">Automated analytics core is crunching your data. Next report due in 4 hours.</p>
+                <button className="mt-8 px-8 py-3 bg-white/5 text-white rounded-xl font-bold text-xs hover:bg-white/10 transition-all uppercase tracking-widest">Global Overview</button>
+             </div>
+          </div>
+        </>
+      )}
+
+      {/* Waiter/Staff View */}
+      {currentUser.role !== 'ADMIN' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+           <div className="glass-card p-10 rounded-[3rem] border-white/5 bg-gradient-to-br from-brand-blue/5 to-transparent">
+              <h3 className="text-3xl font-black text-white font-outfit mb-4">You are <span className="text-brand-blue">Online</span></h3>
+              <p className="text-slate-400 text-sm max-w-sm mb-8">All orders you place will be tracked under your name and sent to the counter for dispatch. Maintain pace and accuracy.</p>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="bg-white/5 p-6 rounded-2xl">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">My Sales</span>
+                    <div className="text-2xl font-black text-white mt-1">{currency} {(waiterSales[currentUser.name] || 0).toLocaleString()}</div>
                  </div>
-                 <p className="text-slate-300 text-sm font-medium leading-relaxed">System found 14 beer bottles unaccounted for in Counter #1 shift.</p>
-                 <button className="mt-6 w-full py-4 rounded-2xl bg-orange-500 text-white font-black text-xs tracking-widest hover:bg-orange-600 transition-colors">
-                    INVESTIGATE DRIFT
-                 </button>
+                 <div className="bg-white/5 p-6 rounded-2xl">
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Shift Time</span>
+                    <div className="text-2xl font-black text-white mt-1">4h 12m</div>
+                 </div>
               </div>
-              <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl group-hover:scale-150 transition-transform" />
            </div>
+
+           <Link href="/pos" className="glass-card p-10 rounded-[3rem] border-white/5 bg-brand-blue flex flex-col justify-center items-center text-center group">
+              <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-white mb-6 group-hover:scale-110 transition-transform">
+                 <ShoppingCart size={40} />
+              </div>
+              <h3 className="text-2xl font-black text-white font-outfit uppercase">Start New Order</h3>
+              <p className="text-white/70 text-sm mt-2">Open the sales terminal to start processing drinks.</p>
+              <ChevronRight className="text-white mt-4 animate-bounce" />
+           </Link>
         </div>
-      </div>
+      )}
     </div>
   );
 }

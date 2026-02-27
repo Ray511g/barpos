@@ -1,13 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type BusinessType = 'LIQUOR_STORE' | 'RETAIL' | 'PHARMACY' | 'RESTAURANT' | 'HARDWARE';
+export type BusinessType = 'LIQUOR_STORE' | 'BAR_RESTAURANT' | 'WHOLESALE';
 
-export interface BusinessModule {
+export interface Order {
   id: string;
-  name: string;
-  enabled: boolean;
-  requiredFor: BusinessType[];
+  waiterId: string;
+  waiterName: string;
+  items: any[];
+  total: number;
+  status: 'PENDING' | 'DISPATCHED' | 'PAID' | 'VOID';
+  timestamp: string;
 }
 
 interface BusinessState {
@@ -15,48 +18,65 @@ interface BusinessState {
   businessType: BusinessType;
   currency: string;
   taxRate: number;
-  modules: BusinessModule[];
+  activeOrders: Order[];
+  completedOrders: Order[];
   
-  // Actions
-  setBusinessType: (type: BusinessType) => void;
-  toggleModule: (moduleId: string) => void;
-  updateSettings: (settings: Partial<BusinessState>) => void;
+  // Configuration Functions
+  updateSettings: (settings: Partial<{ businessName: string; businessType: BusinessType; currency: string; taxRate: number }>) => void;
+  
+  // Order Management
+  createOrder: (order: Order) => void;
+  dispatchOrder: (orderId: string) => void;
+  completeOrder: (orderId: string) => void;
+  voidOrder: (orderId: string) => void;
+  
+  // Reporting Logic
+  getSalesByWaiter: () => Record<string, number>;
 }
-
-const defaultModules: BusinessModule[] = [
-  { id: 'inventory', name: 'Smart Inventory', enabled: true, requiredFor: ['LIQUOR_STORE', 'RETAIL'] },
-  { id: 'empties', name: 'Empties & Crates', enabled: true, requiredFor: ['LIQUOR_STORE'] },
-  { id: 'etims', name: 'KRA eTIMS Sync', enabled: true, requiredFor: ['LIQUOR_STORE'] },
-  { id: 'mpesa', name: 'M-Pesa Reconciliation', enabled: true, requiredFor: ['LIQUOR_STORE'] },
-  { id: 'analytics', name: 'Margin Analysis', enabled: true, requiredFor: [] },
-  { id: 'staff', name: 'Shift Management', enabled: true, requiredFor: [] },
-];
 
 export const useBusinessStore = create<BusinessState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       businessName: 'Kenya Liquor Master',
       businessType: 'LIQUOR_STORE',
       currency: 'KES',
       taxRate: 16,
-      modules: defaultModules,
+      activeOrders: [],
+      completedOrders: [],
 
-      setBusinessType: (type) => set((state) => ({
-        businessType: type,
-        modules: state.modules.map(m => ({
-          ...m,
-          enabled: m.requiredFor.includes(type) || m.enabled
-        }))
+      updateSettings: (settings) => set((state) => ({ ...state, ...settings })),
+
+      createOrder: (order) => set((state) => ({ 
+        activeOrders: [...state.activeOrders, order] 
       })),
 
-      toggleModule: (id) => set((state) => ({
-        modules: state.modules.map(m => m.id === id ? { ...m, enabled: !m.enabled } : m)
+      dispatchOrder: (orderId) => set((state) => ({
+        activeOrders: state.activeOrders.map(o => o.id === orderId ? { ...o, status: 'DISPATCHED' } : o)
       })),
 
-      updateSettings: (newSettings) => set((state) => ({ ...state, ...newSettings })),
+      completeOrder: (orderId) => {
+        const order = get().activeOrders.find(o => o.id === orderId);
+        if (order) {
+          set((state) => ({
+            activeOrders: state.activeOrders.filter(o => o.id !== orderId),
+            completedOrders: [...state.completedOrders, { ...order, status: 'PAID' }]
+          }));
+        }
+      },
+
+      voidOrder: (orderId) => set((state) => ({
+        activeOrders: state.activeOrders.filter(o => o.id !== orderId)
+      })),
+
+      getSalesByWaiter: () => {
+        const completed = get().completedOrders;
+        const sales: Record<string, number> = {};
+        completed.forEach(o => {
+          sales[o.waiterName] = (sales[o.waiterName] || 0) + o.total;
+        });
+        return sales;
+      }
     }),
-    {
-      name: 'smart-pos-business-config',
-    }
+    { name: 'business-storage' }
   )
 );

@@ -24,17 +24,20 @@ import {
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { useAuthStore } from '@/store/authStore';
+
 const menuItems = [
-  { icon: LayoutDashboard, label: 'Overview', path: '/' },
-  { icon: ShoppingCart, label: 'Counter POS', path: '/pos' },
-  { icon: Package, label: 'Inventory', path: '/inventory' },
-  { icon: RefreshCw, label: 'Empties/Crates', path: '/empties' },
-  { icon: SmartphoneNfc, label: 'M-Pesa Recon', path: '/mpesa' },
-  { icon: Users, label: 'Team', path: '/staff' },
-  { icon: AppWindow, label: 'Business Engine', path: '/admin' },
+  { icon: LayoutDashboard, label: 'Overview', path: '/', roles: ['ADMIN', 'CASHIER', 'WAITER'] },
+  { icon: ShoppingCart, label: 'Counter POS', path: '/pos', roles: ['ADMIN', 'CASHIER', 'WAITER'] },
+  { icon: Package, label: 'Inventory', path: '/inventory', roles: ['ADMIN', 'CASHIER'] },
+  { icon: RefreshCw, label: 'Empties/Crates', path: '/empties', roles: ['ADMIN', 'CASHIER'] },
+  { icon: SmartphoneNfc, label: 'M-Pesa Recon', path: '/mpesa', roles: ['ADMIN', 'CASHIER'] },
+  { icon: Users, label: 'Team', path: '/staff', roles: ['ADMIN'] },
+  { icon: AppWindow, label: 'Business Engine', path: '/admin', roles: ['ADMIN'] },
 ];
 
 export default function Sidebar() {
+  const { currentUser } = useAuthStore();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
@@ -82,7 +85,9 @@ export default function Sidebar() {
             </div>
 
             <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
-              {menuItems.map((item) => {
+              {menuItems
+                .filter(item => item.roles.includes(currentUser?.role || 'WAITER'))
+                .map((item) => {
                 const active = pathname === item.path;
                 const showLabel = !collapsed || mobileOpen;
                 return (
