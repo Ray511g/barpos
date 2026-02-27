@@ -1,7 +1,7 @@
-# Universal SmartPOS Enterprise System
-> [!NOTE]
-> Specialized for Kenya Liquor Stores.
-> Deployment Trigger: 2026-02-27T08:59:00Z
+# BarPOS: Distributed Retail Intelligence
+> [!IMPORTANT]
+> Specialized for Kenya Liquor Stores & Modern Bars.
+> Featuring: Waiter Dispatching, PIN-Access, and M-Pesa Recon.
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
